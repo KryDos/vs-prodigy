@@ -37,6 +37,11 @@ The format is:
 
 ## Release Notes
 
+### 0.0.4
+
+* Fixed issue with `file://` scheme difference on windows and *nix
+* use `tree-kill` package to kill a running service and its childs
+
 ### 0.0.3
 
 Use SIGKILL instaed of SIGTERM when killing process

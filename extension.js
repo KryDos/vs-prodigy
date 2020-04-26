@@ -4,6 +4,7 @@ const vscode = require('vscode');
 const spawn = require('child_process').spawn;
 const tmp = require('tmp');
 const fs = require('fs');
+const kill = require('tree-kill');
 
 // extension globals
 
@@ -37,6 +38,7 @@ function activate(context) {
 			const tmpObj = tmp.fileSync();
 			const running_process = spawn(command, args, {
 				cwd: service.base_path,
+				shell: true,
 				env: {
 					PATH: process.env.PATH,
 				}
@@ -79,7 +81,11 @@ function activate(context) {
 			}
 
 			const logRecord = logs.find(l => l.name == serviceName);
-			const openPath = vscode.Uri.parse(`file:///${logRecord.output_file}`);
+			let fileScheme = 'file://';
+			if (process.platform == 'win32') {
+				fileScheme = 'file:///';
+			}
+			const openPath = vscode.Uri.parse(`${fileScheme}${logRecord.output_file}`);
 			vscode.workspace.openTextDocument(openPath).then(doc => {
 				vscode.window.showTextDocument(doc);
 			});
@@ -127,7 +133,7 @@ function rememberProcess(running_process, name, logFile) {
 }
 
 function killProcess(runningProcess) {
-	process.kill(runningProcess.process.pid, 'SIGKILL');
+	kill(runningProcess.process.pid, 'SIGKILL');
 	removeProcessFromRunningList(runningProcess.name);
 }
 
