@@ -37,6 +37,10 @@ The format is:
 
 ## Release Notes
 
+### 0.0.3
+
+Use SIGKILL instaed of SIGTERM when killing process
+
 ### 0.0.2
 
 Add a logo for VSCode Marketplace
