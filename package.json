@@ -1,7 +1,7 @@
 {
 	"name": "vs-prodigy",
 	"displayName": "vs-prodigy",
-	"description": "Manager of long running processes",
+	"description": "Manage external services",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.44.0"
@@ -19,7 +19,7 @@
 			"properties": {
 				"prodigy.services": {
 					"type": "array",
-					"markdownDescription": "List of services to handle. Format: `[{\"name\": \"My Command\", \"base_path\":\"/project/dir\" \"command\": \"npm run dev\"}]`"
+					"markdownDescription": "List of services to handle. Format: `[{\"name\": \"My Command\", \"base_path\":\"/project/dir\" \"command\": \"npm run watch\"}]`"
 				}
 			}
 		},

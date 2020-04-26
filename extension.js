@@ -149,7 +149,7 @@ function attachProcessListeners(running_process, service_name) {
 		removeProcessFromRunningList(service_name);
 	});
 
-	running_process.on('close', function(err) {
+	running_process.on('close', function() {
 		vscode.window.showInformationMessage(`"${service_name}" has been stopped.`);
 		removeProcessFromRunningList(service_name);
 	});
