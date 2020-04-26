@@ -9,6 +9,7 @@ const fs = require('fs');
 
 // store all running processes here 
 const running_processes = [];
+const logs = [];
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -41,10 +42,14 @@ function activate(context) {
 			const service = getServiceByName(serviceName);
 			const command = getCommand(service.command);
 			const args = getArgsFromCommand(service.command);
+			const tmpObj = tmp.fileSync();
 			const running_process = spawn(command, args, {
 				cwd: service.base_path,
+				env: {
+					PATH: process.env.PATH,
+				}
 			});
-			rememberProcess(running_process, serviceName);
+			rememberProcess(running_process, serviceName, tmpObj.name);
 			attachProcessListeners(running_process, serviceName);
 		})
 	});
@@ -62,13 +67,14 @@ function activate(context) {
 				return;
 			}
 
-			const process = findProcess(serviceName);
-			killProcess(process);
+			const running_process = findProcess(serviceName);
+			killProcess(running_process);
 		})
 	});
 
 	let serviceLogCommand = vscode.commands.registerCommand('vs-prodigy.log-service', function() {
-		const serviceNames = getRunningServices();
+		const services = vscode.workspace.getConfiguration('prodigy').services || [];
+		const serviceNames = services.map(s => s.name).filter(sName => logs.find(l => l.name == sName));
 
 		if (!checkServicesAvailability()) {
 			return;
@@ -80,8 +86,8 @@ function activate(context) {
 				return;
 			}
 
-			const process = findProcess(serviceName);
-			const openPath = vscode.Uri.parse(`file:///${process.output_file}`);
+			const logRecord = logs.find(l => l.name == serviceName);
+			const openPath = vscode.Uri.parse(`file:///${logRecord.output_file}`);
 			vscode.workspace.openTextDocument(openPath).then(doc => {
 				vscode.window.showTextDocument(doc);
 			});
@@ -107,27 +113,34 @@ function getNotRunningServices() {
 		.filter(sName => !running_processes.find(p => p.name == sName));
 }
 
-function rememberProcess(process, name) {
-	const tmpObj = tmp.fileSync();
+function rememberProcess(running_process, name, logFile) {
+	running_process.stdout.on('data', function(data) {
+		const logRecord = logs.find(p => p.name == name);
+		fs.appendFileSync(logRecord.output_file, data.toString());
+	})
+
+	running_process.stderr.on('data', function(data) {
+		const logRecord = logs.find(p => p.name == name);
+		fs.appendFileSync(logRecord.output_file, data.toString());
+	})
+
 	running_processes.push({
 		name,
-		process,
-		output_file: tmpObj.name,
+		process: running_process,
 	});
-	process.stdout.on('data', function(data) {
-		const runningProcess = running_processes.find(p => p.name == name);
-		fs.appendFileSync(runningProcess.output_file, data.toString());
+	logs.push({
+		name,
+		output_file: logFile
 	})
 }
 
 function killProcess(runningProcess) {
-	runningProcess.process.kill();
+	process.kill(runningProcess.process.pid, 'SIGTERM');
+	//runningProcess.process.kill();
 	removeProcessFromRunningList(runningProcess.name);
 }
 
 function removeProcessFromRunningList(processName) {
-	console.log(running_processes);
-	console.log(`index found - ${running_processes.findIndex(p => p.name == processName)}`);
 	running_processes.splice(running_processes.findIndex(p => p.name == processName), 1);
 }
 
@@ -157,7 +170,7 @@ function attachProcessListeners(running_process, service_name) {
 
 function getArgsFromCommand(commandString) {
 	const args = commandString.split(' ')
-	delete args[0];
+	args.shift();
 	return args;
 }
 
