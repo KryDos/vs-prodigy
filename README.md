@@ -37,6 +37,10 @@ The format is:
 
 ## Release Notes
 
+### 0.0.2
+
+Add a logo for VSCode Marketplace
+
 ### 0.0.1
 
 Initial release with basic functionality. Allows you to register commands and run/stop/log them.

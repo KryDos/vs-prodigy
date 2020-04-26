@@ -1,8 +1,10 @@
 {
 	"name": "vs-prodigy",
+	"publisher": "KryDos",
 	"displayName": "vs-prodigy",
 	"description": "Manage external services",
-	"version": "0.0.1",
+	"version": "0.0.2",
+	"icon": "images/logo.png",
 	"engines": {
 		"vscode": "^1.44.0"
 	},
@@ -56,5 +58,9 @@
 	},
 	"dependencies": {
 		"tmp": "^0.2.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/KryDos/vs-prodigy"
 	}
 }
