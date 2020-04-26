@@ -27,6 +27,11 @@ function activate(context) {
 	// The commandId parameter must match the command field in package.json
 	let runServiceCommand = vscode.commands.registerCommand('vs-prodigy.run-service', function () {
 		const serviceNames = getNotRunningServices();
+
+		if (!checkServicesAvailability()) {
+			return;
+		}
+
 		vscode.window.showQuickPick(serviceNames).then(serviceName => {
 
 			if (!serviceName) {
@@ -34,15 +39,23 @@ function activate(context) {
 			}
 
 			const service = getServiceByName(serviceName);
-			const running_process = spawn(service.command, {
+			const command = getCommand(service.command);
+			const args = getArgsFromCommand(service.command);
+			const running_process = spawn(command, args, {
 				cwd: service.base_path,
 			});
 			rememberProcess(running_process, serviceName);
+			attachProcessListeners(running_process, serviceName);
 		})
 	});
 
 	let stopServiceCommand = vscode.commands.registerCommand('vs-prodigy.stop-service', function() {
 		const serviceNames = getRunningServices();
+
+		if (!checkServicesAvailability()) {
+			return;
+		}
+
 		vscode.window.showQuickPick(serviceNames).then(serviceName => {
 
 			if (!serviceName) {
@@ -56,6 +69,11 @@ function activate(context) {
 
 	let serviceLogCommand = vscode.commands.registerCommand('vs-prodigy.log-service', function() {
 		const serviceNames = getRunningServices();
+
+		if (!checkServicesAvailability()) {
+			return;
+		}
+
 		vscode.window.showQuickPick(serviceNames).then(serviceName => {
 
 			if (!serviceName) {
@@ -90,22 +108,27 @@ function getNotRunningServices() {
 }
 
 function rememberProcess(process, name) {
-	tmp.file(function(err, path, fd) {
-		running_processes.push({
-			name,
-			process,
-			output_file: path,
-		});
-		process.stdout.on('data', function(data) {
-			const runningProcess = running_processes.find(p => p.name == name);
-			fs.appendFileSync(runningProcess.output_file, data.toString());
-		})
+	const tmpObj = tmp.fileSync();
+	running_processes.push({
+		name,
+		process,
+		output_file: tmpObj.name,
 	});
+	process.stdout.on('data', function(data) {
+		const runningProcess = running_processes.find(p => p.name == name);
+		fs.appendFileSync(runningProcess.output_file, data.toString());
+	})
 }
 
 function killProcess(runningProcess) {
 	runningProcess.process.kill();
-	running_processes.splice(running_processes.findIndex(p => p.name == runningProcess.name), 1);
+	removeProcessFromRunningList(runningProcess.name);
+}
+
+function removeProcessFromRunningList(processName) {
+	console.log(running_processes);
+	console.log(`index found - ${running_processes.findIndex(p => p.name == processName)}`);
+	running_processes.splice(running_processes.findIndex(p => p.name == processName), 1);
 }
 
 function findProcess(processName) {
@@ -115,6 +138,41 @@ function findProcess(processName) {
 function getServiceByName(serviceName) {
 	const services = vscode.workspace.getConfiguration('prodigy').services;
 	return services.find(s => s.name == serviceName);
+}
+
+function attachProcessListeners(running_process, service_name) {
+	if (running_process.pid) {
+		vscode.window.showInformationMessage(`"${service_name}" has been started successfully.`);
+	}
+	running_process.on('error', function(err) {
+		vscode.window.showErrorMessage(`Failed to start "${service_name}": ${err.toString()}`);
+		removeProcessFromRunningList(service_name);
+	});
+
+	running_process.on('close', function(err) {
+		vscode.window.showInformationMessage(`"${service_name}" has been stopped.`);
+		removeProcessFromRunningList(service_name);
+	});
+}
+
+function getArgsFromCommand(commandString) {
+	const args = commandString.split(' ')
+	delete args[0];
+	return args;
+}
+
+function getCommand(commandString) {
+	return commandString.split(' ')[0];
+}
+
+function checkServicesAvailability() {
+	const services = vscode.workspace.getConfiguration('prodigy').services;
+	if (!services.length) {
+		vscode.window.showWarningMessage("You don't have any service defined in prodigy.services. Go to your settings and define some nice services to run");
+		return false;
+	}
+
+	return true;
 }
 
 exports.activate = activate;
