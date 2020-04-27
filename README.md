@@ -1,5 +1,7 @@
 # VSCode Prodigy
 
+## There is no need in this extension because of Custom Tasks mechanism in VSCode. I found it out after the extension was written. It was nice to get better understanding in Extension writting though.
+
 The extension allows you to run/stop and see logs of external services. Pretty useful when you want to start a http server for your app or watch for JavaScript changes.
 
 Basically the same as running those commands in terminal without the terminal.
